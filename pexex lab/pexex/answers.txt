@@ -1,0 +1,21 @@
+1.
+On line 401 of lisp.h in the source code of emacs-25.5, the comment explains that integers in lisp takes uses 2 bits from the bit pattern to use as tags. Emacs clears out these two extra bits by shifting the bit pattern of an int value to the left by two. The following line found in trace.tr implements this exact feature:
+	lea 0x2(,%rbp,4),%rax
+The above line creates two extra empty bits at the least significant two spaces in the bit pattern; however, in doing so, the most significant two bits of the bit pattern will also be lost. This losing of the top two bits is akin to overflowing, which is what caused the erroneous return value of the arithmatic operation.
+
+2.
+When looking for the definitionf of most-negative-fixnum in data.c, data.c indicates that the value is defined under lisp.h. Under the header file lisp.h, MOST_NEGATIVE_FIXNUM is defined as (-1 - MOST_POSITIVE_FIXNUM), and right above that line, MOST_POSITIVE_FIXNUM is defined as EMACS_INT_MAX shifted to the right by a constant value of INTTYPEBITS.
+
+3.
+Most-positive-fixnum has a value of 2305843009213693951, which is sixty-one 1s when converted to binary. Since we are trying to calculate (most-positive-fixnum)^4, we can see (most-positive-fixnum)^4 as (most-positive-fixnum)^2 * (most-positive-fixnum)^2. To get (most-positive-fixnum)^2, we calculate 2305843009213693951^2 and convert the result to binary. It turns out that this value is too large to be represented with 61 bits, and if we truncate the value to its least significant 61 bits, we would get sixty 0s followed by a single 1. Thus, after truncating, (most-positive-fixnum)^2 results in 1, and (most-positive-fixnum)^4 also results in 1.
+
+4.
+If Emacs is compiled with -fwraps enabled by default, then some of the overload detecting mechanism would not work, since many of these machanisms rely on the default overloading behavior where only the top bits get truncated. Having -fwraps would also allow many otherwise program-breaking operations to safely be operated; however, -fwraps would also sometimes produce mathematically incorrect results. 
+
+5.
+The instruction that crashed the program and two instructions before it are shown below:
+0x00007ffff1739493 <+403>:   movdqu %xmm6,-0x20(%rdi)
+0x00007ffff1739498 <+408>:   movaps %xmm3,%xmm6
+0x00007ffff173949b <+411>:   movdqu %xmm7,-0x10(%rdi) <=
+The instruction pointed by the arrow is the one that crashed the program. We can see that from just 2 lines prior, the program moved a 32 byte word onto the address -0x20(%rdi) without error, therefore the action of moving a 32 byte word from a register to a memory location is not an inherently illegal action. While writing a 32 byte word into the memory location -0x10(%rdi) will over-write part of the value originally written at -0x20(%rdi), this action is not inherently illegal either, as similar over-writes has been done earlier in the code without causing any crashing. This means that the memory location -0x10(%rdi) must be some kind of protected memory location containing information that cannot be altered. Such an error is also consistent with the error message produced during the crash: "Program received signal SIGSEGV, Segmentation fault," because segmentation fault means that the program is trying to access a restricted area of the memory.
+

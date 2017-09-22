@@ -1,0 +1,8 @@
+-O2:
+Since -O2 does not specify what to do in the case of an overflow, the gcc compiler decides on its own what action is appropriate under such conditions. In this case, the assembly code shows that the function would return 0 no matter what the argument to the function is. It shows that the default action for gcc during an overflow is to return 0.
+
+-O2 -fwrapv:
+The -fwrapv flag specifies that when an overflow occurs, the operation would perform a wrap-around to the resulting value. This means that when an overflow occurs, gcc would just make the value start from zero again. In this version of the assembly code, the code compares the argument value with the sum of the argument and 9223372036854775807. If the sum is less than the argument, the function returns true, otherwise the function returns false. This method of overflow detection would only work under the condition that wrap-around is performed.
+
+-O2 -fsanitize=undefined:
+The -fsanitize=undefined flag specifies that UndefinedBehaviorSanitizer, an undefined behavior detector, would be enabled. As a result, the assembly code calls the undefined behabior detector after performing the addition that might caused an overflow as specified by the C code. After calling the undefined behabior detector, the program keeps running and performs rest of the operations specified by the C code.

