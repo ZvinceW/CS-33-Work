@@ -1,0 +1,189 @@
+I first started the lab by downloading the file needed according to the specs on the website, and copied the unzipped folder onto the seasnet machine via remote desktop.
+
+
+With the folder on the seasnet computer, I logged into the linux server via putty on my own desktop and used the below command to first enter the directory containing the necessary files:
+
+	cd cs33openmp
+
+Then I compiled and executed the program normally without any optimization using the commands provided by the lab specs:
+
+	make seq
+	./seq
+
+These two commands returned the following results:	
+
+	FUNC TIME : 0.737431
+	TOTAL TIME : 2.613566
+
+Since I wanted to account for variance of each run of the program, I executed the program 4 more times to get the following results:
+
+	FUNC TIME : 0.736984
+	TOTAL TIME : 2.516735
+
+	FUNC TIME : 0.744598
+	TOTAL TIME : 2.544602
+
+	FUNC TIME : 0.746207
+	TOTAL TIME : 2.511377
+
+	FUNC TIME : 0.746757
+	TOTAL TIME : 2.520901
+
+Using data from the 5 runs of the program, I calculated the mean func time, since I will be using it to calculate speedup:
+
+	MEAN FUNC TIME: 0.7423954
+
+Now I want to determine which part of the program taking the longest time to run so I know which part to optimize first. To do this, I compiled the program again with GPROF enabled to get a profile of the performance with the commands below:
+
+	make seq GPROF=1
+	./seq
+	gprof seq | less
+
+I got the follow results:
+	
+	Flat profile:
+
+	Each sample counts as 0.01 seconds.
+	  %   cumulative   self              self     total
+	 time   seconds   seconds    calls  ms/call  ms/call  name
+	 69.97      0.58     0.58       15    38.72    41.16  func1
+	 16.89      0.72     0.14  5177344     0.00     0.00  rand2
+	  4.83      0.76     0.04   491520     0.00     0.00  findIndexBin
+	  2.41      0.78     0.02        2    10.01    10.01  init
+	  2.41      0.80     0.02        1    20.03   133.60  addSeed
+	  2.41      0.82     0.02        1    20.03    20.03  imdilateDisk
+	  1.21      0.83     0.01   983042     0.00     0.00  round
+	  0.00      0.83     0.00       16     0.00     0.00  dilateMatrix
+	  0.00      0.83     0.00       15     0.00     0.00  func2
+	  0.00      0.83     0.00       15     0.00     0.00  func3
+	  0.00      0.83     0.00       15     0.00     0.00  func4
+	  0.00      0.83     0.00       15     0.00     2.67  func5
+	  0.00      0.83     0.00       15     0.00     0.00  rand1
+	  0.00      0.83     0.00        2     0.00     0.00  get_time
+	  0.00      0.83     0.00        1     0.00     0.00  elapsed_time
+	  0.00      0.83     0.00        1     0.00     0.00  fillMatrix
+	  0.00      0.83     0.00        1     0.00     0.00  func0
+	  0.00      0.83     0.00        1     0.00     0.00  getNeighbors
+
+This shows that out of all the functions in func.c, func1 is the most inefficient and should be targeted the first, while func2-5 barely takes any time to run at all. After reading my TA's slides about the OpenMP preprocessor directives, I added the directives in front of any for loops in the functions and added keywords according to the code inside the loop. Details about directives can be examined in the func.c file I turned in. I used the following commands to compile the program with OpenMP optimizations:
+	
+	make omp
+	./omp
+
+and I got the following results:
+
+	FUNC TIME : 0.046969
+	TOTAL TIME : 1.932986
+
+I tried running the programs a few more times to make sure of the performance improvement:
+
+	FUNC TIME : 0.042207
+	TOTAL TIME : 1.998280
+
+	FUNC TIME : 0.043211
+	TOTAL TIME : 1.895000
+
+I was able to capture these three before the server becomes unstable and the func time starts to fluctuate. I then calculated the mean improved func time:
+
+	MEAN IMPROVED FUNC TIME: 0.044129
+
+I then calculated the speedup by dividing the unoptimized mean func time with the mean improved func time and I got:
+
+	0.7423954/0.044129 = 16.8
+
+I got 16.8 times speedup.
+Just to double check the effect of my optimization, I used the following commands to get a profile of the optimized program:
+
+	make seq GPROF=1
+	./seq
+	gprof seq | less
+
+and I got the following results:
+
+	Flat profile:
+
+	Each sample counts as 0.01 seconds.
+	  %   cumulative   self              self     total
+	 time   seconds   seconds    calls  ms/call  ms/call  name
+	 62.04      0.44     0.44       63     6.99     7.66  filter
+	 19.74      0.58     0.14  4250614     0.00     0.00  rand2
+	  7.05      0.63     0.05        1    50.05   188.34  addSeed
+	  5.64      0.67     0.04    26977     0.00     0.00  findIndexBin
+	  2.82      0.69     0.02        2    10.01    10.01  init
+	  1.41      0.70     0.01        1    10.01    10.01  imdilateDisk
+	  1.41      0.71     0.01                             sequence
+	  0.00      0.71     0.00    99430     0.00     0.00  round
+	  0.00      0.71     0.00       16     0.00     0.00  dilateMatrix
+	  0.00      0.71     0.00       15     0.00     0.00  func1
+	  0.00      0.71     0.00       15     0.00     0.00  func2
+	  0.00      0.71     0.00       15     0.00     0.00  func3
+	  0.00      0.71     0.00       15     0.00     0.00  func4
+	  0.00      0.71     0.00       15     0.00     0.00  func5
+	  0.00      0.71     0.00       15     0.00     0.00  rand1
+	  0.00      0.71     0.00        2     0.00     0.00  get_time
+	  0.00      0.71     0.00        1     0.00     0.00  elapsed_time
+	  0.00      0.71     0.00        1     0.00     0.00  fillMatrix
+
+This tells me that func0-5 is no longer anywhere near the most inefficient functions.	
+I then used the following command to check the correctness of my function:
+
+	make check
+
+and I got:
+
+	gcc -o omp  -O3 -fopenmp filter.c main.c func.c util.c -lm
+	cp omp filter
+	./filter
+	FUNC TIME : 0.061204
+	TOTAL TIME : 2.005244
+	diff --brief correct.txt output.txt
+
+This output indicates that my optimization did not change the correctness of the original program. Then I used the following command to check for memory leak:
+
+	make omp MTRACE=1
+	./omp
+	make checkmem
+
+and I got the following results:
+
+	mtrace filter mtrace.out || true
+
+	Memory not freed:
+	-----------------
+	           Address     Size     Caller
+	0x00000000026a3080   0x2040  at 0x7f230559d869
+	0x00000000026a50d0     0xc0  at 0x7f230559d869
+	0x00000000026a51a0    0x108  at 0x7f230559d8b9
+	0x00000000026a52b0    0x240  at 0x7f2305acdc25
+	0x00000000026a5500    0x240  at 0x7f2305acdc25
+	0x00000000026a5750    0x240  at 0x7f2305acdc25
+	0x00000000026a59a0    0x240  at 0x7f2305acdc25
+	0x00000000026a5bf0    0x240  at 0x7f2305acdc25
+	0x00000000026a5e40    0x240  at 0x7f2305acdc25
+	0x00000000026a6090    0x240  at 0x7f2305acdc25
+	0x00000000026a62e0    0x240  at 0x7f2305acdc25
+	0x00000000026a6530    0x240  at 0x7f2305acdc25
+	0x00000000026a6780    0x240  at 0x7f2305acdc25
+	0x00000000026a69d0    0x240  at 0x7f2305acdc25
+	0x00000000026a6c20    0x240  at 0x7f2305acdc25
+	0x00000000026a6e70    0x240  at 0x7f2305acdc25
+	0x00000000026a70c0    0x240  at 0x7f2305acdc25
+	0x00000000026a7310    0x240  at 0x7f2305acdc25
+	0x00000000026a7560    0x240  at 0x7f2305acdc25
+	0x00000000026a77b0    0x240  at 0x7f2305acdc25
+	0x00000000026a7a00    0x240  at 0x7f2305acdc25
+	0x00000000026a7c50    0x240  at 0x7f2305acdc25
+	0x00000000026a7ea0    0x240  at 0x7f2305acdc25
+	0x00000000026a80f0    0x240  at 0x7f2305acdc25
+	0x00000000026a8340    0x240  at 0x7f2305acdc25
+	0x00000000026a8590    0x240  at 0x7f2305acdc25
+	0x00000000026a87e0    0x240  at 0x7f2305acdc25
+	0x00000000026a8a30    0x240  at 0x7f2305acdc25
+	0x00000000026a8c80    0x240  at 0x7f2305acdc25
+	0x00000000026a8ed0    0x240  at 0x7f2305acdc25
+	0x00000000026a9120    0x240  at 0x7f2305acdc25
+	0x00000000026a9370    0x240  at 0x7f2305acdc25
+	0x00000000026a95c0    0x240  at 0x7f2305acdc25
+	0x00000000026a9810    0x240  at 0x7f2305acdc25
+
+Eventhough there is memory leak present, Professor Eggert had told us in his office hours to not worry about it.
