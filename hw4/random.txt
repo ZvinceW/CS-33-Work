@@ -1,0 +1,14 @@
+A. (float)x == (float)dx
+Does not always yield 1. Even though converting from int to float will not overflow, the int value can be rounded when converted to a float. In addition, when converting a double to a float, if the double is too large to be represented as a float, the resulting float would be overflowed to positive infinity. For example, if x = 3.4e38 + 1, the largest normalized single precision number plus one, (float)x would be rounded to some number, while (float)dx would overflow to positive infinity.
+ 
+B. dx - dy == (double) (x-y)
+Does not always yield 1. Since dx and dy are doubles, they have a greater range than the 32-bit ints x and y. Therefore, if x or y initially equal to TMax, then dx - dy would return a mathematically correct value, but x - y would overflow and wrap around according to the -fwrapv flag. 
+
+C. (dx + dy) + dz == dx + (dy + dz)
+Always yields 1. Eventhough floating point arithmatic is not associative, but since double has a greater range than int, any int or int operation will be completely represented by the type double. Since int can be safely represented by double, no rounding will happen. Therefore, this statement will always yield 1.
+
+D. (dx * dy) * dz == dx * (dy * dz)
+Does not always yield 1. since x and y are 32 bit ints that are completely represented, the product of dx and dy cound go up to 64 bits, therefore (dx * dy) and (dy * dz) could round differently and that could cause (dx * dy) * dz == dx * (dy * dz) to yield 0. This is why floating point multiplication is not associative.
+
+E. dx / dx == dz / dz
+Does not always yield 1. If either dx or dz equal to 0, then dx/dx or dz/dz will return NaN, and a comparison with NaN will always yield 0.

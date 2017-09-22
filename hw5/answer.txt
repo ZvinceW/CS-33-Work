@@ -1,0 +1,7 @@
+12.18
+a. H2, L2, U2, H1, L1, S2, U1, S1, T1, T2: unsafe
+b. H2, H1, L1, U1, S1, L2, T1, U2, S2, T2: safe
+c. H1, L1, H2, L2, U2, S2, U1, S1, T1, T2: unsafe
+
+12.24
+Since the RIO functions accept pointers as arguments, they are not explicitly reentrant. However, they are implicitly reentrant since the functions CAN be reentrant if their callers are careful in not passing in pointers pointed to shared data. 

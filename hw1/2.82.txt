@@ -1,0 +1,31 @@
+A.
+Does not always yield 1. 
+x = 0, y = INT_MAX.
+
+B.
+Always true.
+Shifting a number 4 bits to the left has the same effect of multiplying that number by 2^4 = 16, therefore the expression ((x+y)<<4) becomes (4(x+y)). 
+(16(x+y))+y-x == 17*y+15*x
+(16x+16y)+y-x == 17y+15x
+17y+15x == 17y+15x
+
+C.
+Always true.
+This is always true because for a number x, ~x = -x-1. Therefore, ~(x+y) = -(x+y)-1 and ~x+~y+1 = -x-1+-y-1+1 = -x-y-1. The expression then becomes -x-y-1 = -(x+y)-1 => -x-y-1 = -x-y-1.
+
+D.
+Always true.
+When casting a signed operation to unsigned, the computer sums the binary bits of the two numbers together and then evaluates the binary sum as an unsigned number. This means the binary sum for both signed addition and unsigned addition is equivalent, so the expression -(unsigned)(y-x) = -(uy-ux). The original expression then becomes (ux-uy) = -uy+ux => (ux-uy) = ux-uy.
+
+E.
+Always true.
+>>2 is the equivalent to 1/(2^2) and <<2 is the equivalent of 2^2, so ((x>>2)<<2) = x(1/4)(4) = x. The original expression thus becomes x<=x, which is always true.
+
+F.
+Always true.
+When x is negative, (x >> 1) adds an extra 1 to x as its most significant bit after shifting its existing bits to the right. (ux >> 1) would also shift the same bits to the right as (x >> 1), except it adds a 0 as its most significant bit. However, (ux & (-1 << 31)) would evaluate to having 1 as its most significant bit and all 0s for the rest of its bits. (ux >> 1) + (ux & (-1 << 31)) would then replace 0 for 1 as the most significant bit of ux, therefore the two sides of the expression is now equivalent.
+When x is positive, (x >> 1) adds an extra 0 to x as its most significant bit after shifting its existing bits to the right. (ux >> 1) would also shift the same bits to the right as (x >> 1) and add a 0 as its most significant bit. Now that x is a positive number (ux & (-1 << 31)) would evaluate to 0 since the most significant bit of ux is 0. (ux >> 1) + (ux & (-1 << 31)) => (ux >> 1) + 0 => (x >> 1). Therefore both sides of the expression is equal. 
+
+G.
+Always true.
+This is true because %128 truncates the 32 bit number to its last 7 bits, &127 also truncates the 32 bit number to its last 7 bits.

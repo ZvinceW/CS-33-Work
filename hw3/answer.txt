@@ -1,0 +1,46 @@
+3.67
+A.
+_____________
+|%rsp   | x |
+|%rsp+8 | y |
+|%rsp+16| &z|
+|%rsp+24| z |
+ ... 
+
+B.
+Eval passed x, y, &z, z, and an address to location %rsp+64 into process.
+
+C.
+The values x, y, z, and &z were all stored in the stack frame. Therefore, process can access those four values from the stack frame. Process can also access the address to %rsp+64 from the register %rdi.
+
+D.
+The code for process uses the address to %rsp+64 passed in by eval to place the member variables of r at that location with the variables' corresponding offsets. It wrote to %rsp+64 to set r.u[0]. It wrote to %rsp+72 to set r.u[1]. It wrote to %rsp+80 to set r.q.
+
+E.
+_____________
+|%rsp   | x |
+|%rsp+8 | y |
+|%rsp+16| &z|
+|%rsp+24| z |
+ ... 
+|%rsp+64| y |
+|%rsp+72| x |
+|%rsp+80| z |
+...
+
+F.
+When a structure is passed as a function argument, its values are stored in the stack frame. When the structure is returned as function results, its values are copied from the stack frame to the register %rax with each value's corresponding offsets.
+
+
+3.70
+A.
+e1.p: 0
+e1.y: 8 
+e1.x: 0
+e1.next: 8 
+
+B.
+16 bytes.
+
+C.
+up->e2.x = *(up->e2.next->e1.p) - up->e2.next->e1.y

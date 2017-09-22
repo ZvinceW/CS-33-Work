@@ -1,0 +1,5 @@
+A.
+The if statement in the code tries to compute (maxbytes - sizeof(val)) and compare it to 0. However, since the sizeof function returns a value of type size_t, which is an unsigned value, the signed int maxbytes will be converted to an unsigned value before (maxbytes - sizeof(val)) will be computed. Since an operation between two unsigned numbers will always be unsigned, (maxbytes - sizeof(val)) will always return an unsigned number, which is always >= 0.
+
+B.
+if(maxbytes > 0 && maxbytes >= sizeof(val))

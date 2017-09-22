@@ -1,0 +1,20 @@
+[3.60]
+
+A. 
+x is in %rdi.
+n is in %esi.
+result is in %rax.
+mask is in %rdx.
+
+B.
+Initial value for result is 0.
+Initial value for mask is 1.
+
+C.
+mask != 0
+
+D.
+The update expression of the for loop updates mask by executing (mask = mask << n) at the end of every iteration of the for loop.
+
+E.
+The body statement of the for loop updates result by executing (result |= x & mask) during every iteration of the for loop.
